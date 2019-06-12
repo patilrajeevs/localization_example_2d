@@ -1,28 +1,3 @@
-# The function localize takes the following arguments:
-#
-# colors:
-#
-# measurements:
-#
-# motions:
-#
-# sensor_right:
-#
-# p_move:
-#
-# The function should RETURN (not just show or print) a 2D list (of the same
-# dimensions as colors) that gives the probabilities that the robot occupies
-# each cell in the world.
-#
-# Compute the probabilities by assuming the robot initially has a uniform
-# probability of being in any cell.
-#
-# Also assume that at each stiep, the robot:
-# 1) first makes a movement,
-# 2) then takes a measurement.
-#
-# Motion:
-
 
 # This problem is from an excercise in udacity's https://classroom.udacity.com/courses/cs373 course
 # Understand how localization works
