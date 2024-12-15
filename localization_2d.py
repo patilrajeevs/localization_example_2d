@@ -1,87 +1,112 @@
+# The function localize takes the following arguments:
+#
+# colors:
+#        2D list, each entry either 'R' (for red cell) or 'G' (for green cell)
+#
+# measurements:
+#        list of measurements taken by the robot, each entry either 'R' or 'G'
+#
+# motions:
+#        list of actions taken by the robot, each entry of the form [dy,dx],
+#        where dx refers to the change in the x-direction (positive meaning
+#        movement to the right) and dy refers to the change in the y-direction
+#        (positive meaning movement downward)
+#        NOTE: the *first* coordinate is change in y; the *second* coordinate is
+#              change in x
+#
+# sensor_right:
+#        float between 0 and 1, giving the probability that any given
+#        measurement is correct; the probability that the measurement is
+#        incorrect is 1-sensor_right
+#
+# p_move:
+#        float between 0 and 1, giving the probability that any given movement
+#        command takes place; the probability that the movement command fails
+#        (and the robot remains still) is 1-p_move; the robot will NOT overshoot
+#        its destination in this exercise
+#
+# The function should RETURN (not just show or print) a 2D list (of the same
+# dimensions as colors) that gives the probabilities that the robot occupies
+# each cell in the world.
+#
+# Compute the probabilities by assuming the robot initially has a uniform
+# probability of being in any cell.
+#
+# Also assume that at each step, the robot:
+# 1) first makes a movement,
+# 2) then takes a measurement.
+#
+# Motion:
+#  [0,0] - stay
+#  [0,1] - right
+#  [0,-1] - left
+#  [1,0] - down
+#  [-1,0] - up
 
-# This problem is from an excercise in udacity's https://classroom.udacity.com/courses/cs373 course
-# Understand how localization works
-import numpy as np
 
-class Localization:
-    def __init__(self):
-        # 2D list, each entry either 'R' (for red cell) or 'G' (for green cell)
-        # This defines the "world", can be of any size.
-        self.maps = np.array([
-                       ['R','G','G','R','R'],
-                       ['R','R','G','R','R'],
-                       ['R','R','G','G','R'],
-                       ['R','R','R','R','R']
-                      ])
-        # list of measurements taken by the robot, each entry either 'R' or 'G'
-        # This is what the robot sees / senses
-        self.measurements = np.array(['G','G','G','G','G'])
-        
-        # list of actions taken by the robot, each entry of the form [dy,dx],
-        # where dx refers to the change in the x-direction (positive meaning
-        # movement to the right) and dy refers to the change in the y-direction
-        #  [0,0] - stay
-        #  [0,1] - right
-        #  [0,-1] - left
-        #  [1,0] - down
-        #  [-1,0] - up
-	self.motions = np.array([[0,0],[0,1],[1,0],[1,0],[0,1]])
-        
-        # for this example, each movement must have a sensed value
-        assert np.shape(self.measurements)[0] == np.shape(self.motions)[0], "measurements not equal to motions"
-        
-        # float between 0 and 1, giving the probability that any given
-        # measurement is correct; the probability that the measurement is
-        # incorrect is 1-sensor_right
-        self.sensor_right = 0.7
-        
-        # float between 0 and 1, giving the probability that any given movement
-        # command takes place; the probability that the movement command fails
-        # (and the robot remains still) is 1-p_move; the robot will NOT overshoot
-        # its destination in this exercise
-        self.p_move = 0.8
-	
-        # initializes p to a uniform distribution over a grid of the same dimensions as colors
-	pinit = 1.0 / float(len(self.maps)) / float(len(self.maps[0]))
-	self.p = np.full(self.maps.shape, pinit, np.float64)
+def move(p, motion, p_move):
+    dy = motion[0]
+    dx = motion[1]
+    if dx == dy == 0:
+        return p
+    q = []
 
-    def move(self, motion):
-        "Move to the required motion with a certainty of p_move by motion"
-        if np.array_equal(motion,[0,0]):
-            pass
-        elif np.array_equal(motion,[0,1]):
-            self.p = self.p*(1-self.p_move) + np.roll(self.p, 1, axis = 1)*self.p_move
-        elif np.array_equal(motion,[0,-1]):
-            self.p = self.p*(1-self.p_move) + np.roll(self.p, -1, axis = 1)*self.p_move
-        elif np.array_equal(motion,[1,0]):
-            self.p = self.p*(1-self.p_move) + np.roll(self.p, 1, axis = 0)*self.p_move
-        elif np.array_equal(motion,[-1,0]):
-            self.p = self.p*(1-self.p_move) + np.roll(self.p, -1, axis = 0)*self.p_move
-        else:
-            assert False, "Unsupported motion defined : %s"%motion
-        #normalize
-        #normalize to 1
-        self.p = self.p / np.sum(self.p)
+    for i in range(len(p)):
+        row = []
+        for j in range(len(p[i])):
+            update_probability = 0.0
 
-    def measure(self, measurement):
-        "Sense after motion, where you are, what you see. Sensor error probability is given in sensor_right"
-        multiplier = np.full(self.maps.shape, 1, np.float64)
-        # Multiply with sensor_right probability wherever the objects observation is present
-        multiplier[self.maps == measurement] *= self.sensor_right
-        # Multiply with 1 - sensor_right probability wherever the objects observation is present
-        multiplier[self.maps != measurement] *= (1 - self.sensor_right)
-        #actually do the multiplication
-        self.p = np.multiply(self.p, multiplier)
-        #normalize to 1
-        self.p = self.p / np.sum(self.p)
+            # The below if-else can be consolidated into a single line, 
+            # because we move in only one direction.
+            # Either dx or dy will always be 0, so the index will be same
+            # i.e. we will either move on the same column, or on the same row.
+            # if dy:
+            #     update_probability = p[(i - dy)%len(p)][j] * p_move
+            # elif dx:
+            #     update_probability = p[i][(j - dx)%len(p[i])] * p_move
+            # NOTE : the modulous for the second index is always p[i], 
+            # because the row and columns may have different lengths. This easy to miss
+            
+            column_index = (i - dy)%len(p)
+            row_index = (j - dx)%len(p[i])
+            update_probability = p[column_index][row_index] * p_move
+            update_probability += p[i][j] * (1 - p_move)
+            row.append(update_probability)
+        q.append(row)
+    return q
 
-    def localize(self):
-        "Move / sense / move / sense loop"
-        for motion,measurement in zip(self.motions, self.measurements):
-            self.move(motion)
-            self.measure(measurement)
+def sense(p, measurement, colors, sensor_right):
+    q = []
+    total_prob =  0.0
+    for i in range(len(p)):
+        row = []
+        for j in range(len(p[i])):
+            if measurement == colors[i][j]:
+                p[i][j] = p[i][j] * sensor_right
+            else:
+                p[i][j] = p[i][j] * (1 - sensor_right)
+            row.append(p[i][j])
+            total_prob += p[i][j]
+        q.append(row)
 
-if __name__ == "__main__":
-    obj = Localization()
-    obj.localize()
-    print "Localized the object it is present in the location from below matrix with highest probability : \n%s"%obj.p
+    for i in range(len(q)):
+        for j in range(len(q[i])):
+            q[i][j] = q[i][j] / total_prob
+    return q
+
+def localize(colors,measurements,motions,sensor_right,p_move):
+    # initializes p to a uniform distribution over a grid of the same dimensions as colors
+    pinit = 1.0 / float(len(colors)) / float(len(colors[0]))
+    p = [[pinit for row in range(len(colors[0]))] for col in range(len(colors))]
+    
+    # >>> Insert your code here <<<
+    num_steps = len(motions)
+    for i in range(num_steps):
+        p = move(p, motions[i], p_move)
+        p = sense(p, measurements[i], colors, sensor_right)
+    
+    return p
+
+def show(p):
+    rows = ['[' + ','.join(map(lambda x: '{0:.5f}'.format(x),r)) + ']' for r in p]
+    print ('[' + ',\n '.join(rows) + ']')
